@@ -22,7 +22,7 @@ $GLOBALS['TCA']['tx_amtfeedimporter_domain_model_feed'] = array(
 			'endtime' => 'endtime',
 		),
 		'searchFields' => 'name, feed_url, author, author_email,',
-		'iconfile' => \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extRelPath('amt_feed_importer') .  'ext_icon.png'
+		'iconfile' => 'EXT:amt_feed_importer/ext_icon.png'
 	),
 	'interface' => array(
 		'showRecordFieldList' => 'hidden, name, type, feed_url, target_folder, news_type, 
