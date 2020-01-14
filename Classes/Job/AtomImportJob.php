@@ -33,22 +33,22 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 	 * @var \TYPO3\CMS\Extbase\Object\ObjectManager
 	 */
 	protected $objectManager = NULL;
-	
+
 	/**
 	 * @var \AMT\AmtFeedImporter\Domain\Repository\FeedRepository
 	 */
 	protected $feedRepository = NULL;
-	
+
 	/**
 	 * @var \TYPO3\CMS\Extbase\Service\CacheService
 	 */
 	protected $cacheService = NULL;
-	
+
 	/**
 	 * @var \AMT\AmtFeedImporter\Domain\Model\Feed
 	 */
 	protected $feed = NULL;
-	
+
 	/**
 	 * @see \AMT\AmtFeedImporter\Job\FeedImportJobInterface::run()
 	 */
@@ -56,31 +56,39 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 		if ($this->objectManager === NULL) {
 			$this->objectManager = GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
 		}
-		
+
 		if ($this->feedRepository === NULL) {
 			$this->feedRepository = $this->objectManager->get(\AMT\AmtFeedImporter\Domain\Repository\FeedRepository::class);
 		}
-		
+
 		if ((int) $feedUid <= 0) {
 			return FALSE;
 		}
-		
+
 		if ($this->feed === NULL && (int) $feedUid > 0) {
 			$this->feed = $this->feedRepository->findByUid($feedUid);
 		}
-		
+
 		$newsArray = $this->parseContent($this->feed->getFeedUrl());
-		
+
 		if ($newsArray === NULL) {
 			return FALSE;
 		} elseif (!is_array($newsArray)) {
 			return FALSE;
 		}
-		
+
 		foreach ($newsArray as $newsItem) {
-			$importedNewsCollection = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecordsByField('tx_news_domain_model_news', 'amt_feedimporter_guid',
-					$newsItem['amt_feedimporter_guid']);
-				
+			$queryBuilder = $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('tx_news_domain_model_news');
+
+            $importedNewsCollection = $queryBuilder
+                ->select('*')
+                ->from('tx_news_domain_model_news')
+                ->where(
+                    $queryBuilder->expr()->eq('amt_feedimporter_guid',  $queryBuilder->createNamedParameter($newsItem['amt_feedimporter_guid']))
+                )
+                ->execute()->fetch();
+
 			if (!is_array($importedNewsCollection)) {
 				$importedNews = array();
 				$importedNews['amt_feedimporter_guid'] = $newsItem['amt_feedimporter_guid'];
@@ -90,23 +98,23 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 				$importedNews['datetime'] = $newsItem['datetime']->getTimestamp();
 				$importedNews['sys_language_uid'] = $this->feed->getNewsLanguage();
 				$importedNews['pid'] = $this->feed->getTargetFolder();
-			
+
 				if ($newsItem['author'] !== '') {
 					$importedNews['author'] = $newsItem['author'];
 				} else {
 					$importedNews['author'] = $this->feed->getAuthor();
 				}
-			
+
 				if ($newsItem['author_email'] !== '') {
 					$importedNews['author_email'] = $newsItem['author_email'];
 				} else {
 					$importedNews['author_email'] = $this->feed->getAuthorEmail();
 				}
-			
+
 				if ($this->feed->getHideImportedNews()) {
 					$importedNews['hidden'] = 1;
 				}
-			
+
 				if ($this->feed->getNewsType() === '1') {
 					$importedNews['type'] = 1;
 					$importedNews['internalurl'] = $newsItem['link'];
@@ -116,26 +124,26 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 				}
 			} else {
 				$importedNews = $importedNewsCollection[0];
-			
+
 				if ($this->feed->getOverrideEditedNews() || (!$this->feed->getOverrideEditedNews() &&
 						!((boolean) $importedNews['amt_feedimporter_was_edited']))) {
 					$importedNews['title'] = $newsItem['title'];
 					$importedNews['teaser'] = $newsItem['teaser'];
 					$importedNews['bodytext'] = $newsItem['bodytext'];
 					$importedNews['datetime'] = $newsItem['datetime']->getTimestamp();
-			
+
 					if ($newsItem['author'] !== '') {
 						$importedNews['author'] = $newsItem['author'];
 					} else {
 						$importedNews['author'] = $this->feed->getAuthor();
 					}
-				
+
 					if ($newsItem['author_email'] !== '') {
 						$importedNews['author_email'] = $newsItem['author_email'];
 					} else {
 						$importedNews['author_email'] = $this->feed->getAuthorEmail();
 					}
-			
+
 					if ($this->feed->getNewsType() === '1') {
 						$importedNews['internalurl'] = $newsItem['link'];
 					} elseif ($this->feed->getNewsType() === '2') {
@@ -159,15 +167,15 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 					$importedNews[$key] = $val;
 				}
 			}
-			
+
 			/* @var $dataHandler \TYPO3\CMS\Core\DataHandling\DataHandler */
 			$dataHandler = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
-			
+
 			$data = array();
-				
+
 			if (!isset($importedNews['uid'])) {
 				$data['tx_news_domain_model_news']['NEW'] = $importedNews;
-				
+
 				$dataHandler->start($data, array());
 				$dataHandler->process_datamap();
 
@@ -177,44 +185,44 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 						!((boolean) $importedNews['amt_feedimporter_was_edited']))) {
 
 					$data['tx_news_domain_model_news'][$importedNews['uid']] = $importedNews;
-							
+
 					$dataHandler->start($data, array());
 					$dataHandler->process_datamap();
 				}
 			}
-			
+
 			if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXT']['amt_feed_importer']['Job/AtomImportJob.php']['processAfterSaved'])) {
 				$params = array(
 					'importedNews' => $newsItem,
 					'newsId' => $importedNews['uid'],
 				);
-					
+
 				foreach ($GLOBALS['TYPO3_CONF_VARS']['EXT']['amt_feed_importer']['Job/AtomImportJob.php']['processAfterSaved'] as $reference) {
 					GeneralUtility::callUserFunction($reference, $params, $this);
 				}
 			}
 		}
-		
+
 		if (count($newsArray) > 0) {
 			if ($this->cacheService === NULL) {
 				$this->cacheService = $this->objectManager->get(\TYPO3\CMS\Extbase\Service\CacheService::class);
 			}
-				
+
 			$this->cacheService->clearPageCache($this->feed->getTargetFolder());
 		}
-		
+
 		return TRUE;
 	}
-	
+
 	/**
 	 * @see \AMT\AmtFeedImporter\Job\FeedImportJobInterface::parseContent()
 	 */
 	public function parseContent($feedUrl) {
 		$content = FALSE;
-		
+
 		if (function_exists('curl_version')) {
 			$cUrl = curl_init();
-			
+
 			curl_setopt($cUrl, CURLOPT_URL, $feedUrl);
 			curl_setopt($cUrl, CURLOPT_RETURNTRANSFER, 1);
 			curl_setopt($cUrl, CURLOPT_FOLLOWLOCATION, true);
@@ -222,38 +230,38 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
             if ($this->feed->getSocialFeed()) {
                 $this->socialAdditionalCurlConfiguration($cUrl);
             }
-			
+
 			$content = curl_exec($cUrl);
-			
+
 			curl_close($cUrl);
 		} else if (file_get_contents(__FILE__) && ini_get('allow_url_fopen')) {
 			$content = file_get_contents($feedUrl);
 		}
-		
+
 		if ($content === FALSE) {
 			return NULL;
 		} else {
 			if ($this->cacheService === NULL) {
 				$xmlObject = new \SimpleXMLElement($content);
-	
+
 				if ($xmlObject->getName() !== 'feed') {
 					GeneralUtility::devLog('This is not Atom standard', 'amt_feed_importer', 3);
-					
+
 					return FALSE;
 				}
-				
+
 				$parsedNews = array();
-				
+
 				foreach ($xmlObject->entry as $entry) {
 					$linkValue = '';
-					
+
 					foreach ($entry->link as $link) {
 						$linkAttributes = $link->attributes();
-						
+
 						if ((isset($linkAttributes['rel']) && $linkAttributes['rel'] == 'alternate') ||
                             !isset($linkAttributes['rel'])) {
 							$linkValue = $linkAttributes['href'];
-							
+
 							break;
 						}
 					}
@@ -270,17 +278,17 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 						'teaser' => (string) $entry->summary,
 						'bodytext' => (string) $entry->content,
 					);
-				
+
 					if ($this->feed->getCustomMapping() !== '') {
 						$thisParsedNews = &$parsedNews[count($parsedNews) - 1];
 						$thisParsedNews['customMapping'] = array();
-						
+
 						/* @var $typoScriptParser \TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser */
 						$typoScriptParser = GeneralUtility::makeInstance(\TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser::class);
 						$typoScriptParser->parse($this->feed->getCustomMapping());
-						
+
 						$customMappingConfiguration = $typoScriptParser->setup;
-						
+
 						if (is_array($customMappingConfiguration)) {
 							foreach ($customMappingConfiguration as $key => $val) {
 								if (!is_array($val)) {
@@ -292,13 +300,13 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 								} else {
 									foreach ($val as $k => $v) {
 										$joinedValues = array();
-										
+
 										$childrens = $entry->children(str_replace('.', '', $key), TRUE)->{$k};
 
 										foreach ($childrens as $children) {
 											$joinedValues[] = (string) $children;
 										}
-										
+
 										$thisParsedNews['customMapping'][$v] = implode(',', $joinedValues);
 									}
 								}
@@ -311,13 +319,13 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 							'parsedNews' => &$parsedNews[count($parsedNews) - 1],
 							'item' => $entry,
 						);
-							
+
 						foreach ($GLOBALS['TYPO3_CONF_VARS']['EXT']['amt_feed_importer']['Job/AtomImportJob.php']['extraMapping'] as $reference) {
 							GeneralUtility::callUserFunction($reference, $params, $this);
 						}
 					}
 				}
-					
+
 				return $parsedNews;
 			}
 		}
