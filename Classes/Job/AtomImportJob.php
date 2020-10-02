@@ -26,6 +26,7 @@ namespace AMT\AmtFeedImporter\Job;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use \TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
@@ -256,11 +257,11 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 					$linkValue = '';
 
 					foreach ($entry->link as $link) {
-						$linkAttributes = $link->attributes();
+						$linkAttributes = (array) $link->attributes();
 
-						if ((isset($linkAttributes['rel']) && $linkAttributes['rel'] == 'alternate') ||
-                            !isset($linkAttributes['rel'])) {
-							$linkValue = $linkAttributes['href'];
+						if ((isset($linkAttributes['@attributes']['rel']) && $linkAttributes['@attributes']['rel'] == 'alternate') ||
+                            !isset($linkAttributes['@attributes']['rel'])) {
+							$linkValue = $linkAttributes['@attributes']['href'];
 
 							break;
 						}
