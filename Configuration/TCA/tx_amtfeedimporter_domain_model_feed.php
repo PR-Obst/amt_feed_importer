@@ -25,11 +25,11 @@ $GLOBALS['TCA']['tx_amtfeedimporter_domain_model_feed'] = array(
 		'iconfile' => 'EXT:amt_feed_importer/ext_icon.png'
 	),
 	'interface' => array(
-		'showRecordFieldList' => 'hidden, name, type, feed_url, target_folder, news_type, 
+		'showRecordFieldList' => 'hidden, name, type, feed_url, target_folder, news_type,
 			override_edited_news, hide_imported_news, categories, author, author_email, news_language, custom_mapping, social_feed',
 	),
 	'types' => array(
-		'1' => array('showitem' => 'name, type, feed_url, target_folder, news_type, news_language, override_edited_news, hide_imported_news, 
+		'1' => array('showitem' => 'name, type, feed_url, target_folder, news_type, news_language, override_edited_news, hide_imported_news,
 			--div--;LLL:EXT:amt_feed_importer/Resources/Private/Language/locallang_ttc.xlf:tabs.defaults, categories, author, author_email,
 			--div--;LLL:EXT:amt_feed_importer/Resources/Private/Language/locallang_ttc.xlf:tabs.additional, custom_mapping, social_feed,
 			--div--;LLL:EXT:cms/locallang_ttc.xlf:tabs.access, hidden, starttime, endtime'),
@@ -43,6 +43,7 @@ $GLOBALS['TCA']['tx_amtfeedimporter_domain_model_feed'] = array(
 			'label' => 'LLL:EXT:lang/locallang_general.xlf:LGL.language',
 			'config' => array(
 				'type' => 'select',
+				'renderType' => 'selectSingle',
 				'foreign_table' => 'sys_language',
 				'foreign_table_where' => 'ORDER BY sys_language.title',
 				'items' => array(
@@ -154,7 +155,14 @@ $GLOBALS['TCA']['tx_amtfeedimporter_domain_model_feed'] = array(
 				'type' => 'group',
 				'internal_type' => 'db',
 				'allowed' => 'pages',
-				'size' => 1
+				'size' => 1,
+				'default' => 0,
+				'suggestOptions' => [
+					'default' => [
+					   'additionalSearchFields' => 'nav_title, alias, url',
+					   'addWhere' => 'AND pages.doktype = 1'
+					]
+				 ]
 			),
 		),
 		'news_type' => array(
