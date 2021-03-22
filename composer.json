@@ -10,5 +10,10 @@
     "psr-4": {
       "AMT\\AmtFeedImporter\\": "Classes/"
     }
+  },
+  "extra": {
+    "typo3/cms": {
+      "extension-key": "amt_feed_importer"
+    }
   }
 }
