@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace AMT\AmtFeedImporter\Job;
 
 /***************************************************************
@@ -120,7 +120,7 @@ class RSS2ImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 						$newsItem['link'] : $newsItem['amt_feedimporter_guid'];
 				}
 			} else {
-				$importedNews = $importedNewsCollection[0];
+				$importedNews = $importedNewsCollection;
 
 				if ($this->feed->getOverrideEditedNews() || (!$this->feed->getOverrideEditedNews() &&
 						!((boolean) $importedNews['amt_feedimporter_was_edited']))) {
