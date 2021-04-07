@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace AMT\AmtFeedImporter\Job;
 
 /***************************************************************
@@ -124,7 +124,7 @@ class AtomImportJob implements \AMT\AmtFeedImporter\Job\FeedImportJobInterface {
 					$importedNews['externalurl'] = $newsItem['link'];
 				}
 			} else {
-				$importedNews = $importedNewsCollection[0];
+				$importedNews = $importedNewsCollection;
 
 				if ($this->feed->getOverrideEditedNews() || (!$this->feed->getOverrideEditedNews() &&
 						!((boolean) $importedNews['amt_feedimporter_was_edited']))) {
