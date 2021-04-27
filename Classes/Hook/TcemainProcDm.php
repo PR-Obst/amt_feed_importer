@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace AMT\AmtFeedImporter\Hook;
 
 /***************************************************************
@@ -26,6 +26,9 @@ namespace AMT\AmtFeedImporter\Hook;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 class TcemainProcDm {
 	/**
 	 * @param string $status status of operation on current TCA object
@@ -38,17 +41,17 @@ class TcemainProcDm {
 	public function processDatamap_postProcessFieldArray($status, $table, $id, &$fieldArray, &$reference) {
 		if ($table === 'tx_news_domain_model_news' && $status === 'update') {
 			$oldNews = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($table, $id);
-			
-			$extConfiguration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['amt_feed_importer']);
-			
+
+			$extConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('amt_feed_importer');
+
 			$fieldsList = array_map('trim', explode(',', $extConfiguration['editedFieldsList']));
-			
+
 			foreach ($fieldsList as $field) {
 				if (isset($fieldArray[$field]) && $fieldArray[$field] !== $oldNews[$field]) {
 					$data = array();
-					
+
 					$data[$table][$id]['amt_feedimporter_was_edited'] = 1;
-					
+
 					$dataHandler = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
 					$dataHandler->start($data, array());
 					$dataHandler->process_datamap();
